@@ -6,8 +6,15 @@ const ignore = ['が', 'の', 'を', 'に', 'へ', 'と', 'で', 'から', 'よ�
 //the id of the div that contains the input to find definitions for
 const inputField = 'JAGlossInput'
 
+//the id of the div where the definition should go once it's found
+const outputField = 'JAGlossOutput'
+
 //the dictionary file located in collection.media
 const dictionary = '_JADict.json'
+
+/* TinySegmenter tokenizes the japanese sentence to find words we can look up.
+   It's included here so the user doesn't have to add multiple scripts to their card.
+*/
 
 // TinySegmenter 0.1 -- Super compact Japanese tokenizer in Javascript
 // (c) 2008 Taku Kudo <taku@chasen.org>
@@ -229,6 +236,7 @@ function GetDefinitions(words) {
         //Kanji hover after injecting html
         if (body) body = body.innerHTML
         if (isOnline() && body) {
+            AppendPopupDiv()
             findKanji()
             getKanjiData().then(r => {
                 injectKanjiHTML()
@@ -249,107 +257,13 @@ function LoadJSON(filename, callback) {
     xobj.send(null)
 }
 
-function appendCSS() {
-    var styleSheet = document.createElement('style')
-    styleSheet.innerHTML = `
-    .wordTooltip {
-      position: relative;
-      display: inline-block;
-      cursor: pointer;
-      text-decoration: none;
-      color: white;
-      user-drag: none; 
-      -webkit-user-drag: none;
-      user-select: text;
-      outline: none;
-      background: mediumpurple;
-      margin-left: 2px;
-      margin-right: 2px;
-      overflow: hidden;
-    }
-
-    .wordTooltip .wordTooltipText {
-      visibility: hidden;
-      width: 100%;
-      max-width: 85%;
-      max-height: 90vh;
-      background-color: #1E1A1E;
-      color: #fff;
-      text-align: center;
-      padding: 5px 0;
-      border-radius: 6px;
-      z-index: 1;
-      display: inline-block;
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      -webkit-transform: translate(-50%, -50%);
-      transform: translate(-50%, -50%);
-      font-size: 18px;
-      writing-mode: horizontal-tb;
-    }
-
-    .wordTooltip:hover .wordTooltipText {
-      visibility: visible;
-    }
-
-    .wordTooltipText {
-      user-select: none; 
-      overflow-y: scroll; 
-      overflow-x: hidden;
-    }
-    
-    .wordTooltipText::-webkit-scrollbar {
-      background: transparent;
-    }
-
-    .hoverText {
-      color: #e95464;
-    }
-
-    .aKanji {
-      position: relative;
-      display: inline-block;
-      cursor: pointer;
-      text-decoration: none;
-      color: inherit;
-      user-drag: none; 
-      -webkit-user-drag: none;
-      user-select: text;
-      outline: none;
-    }
-
-    ruby {
-        ruby-position: over;
-        ruby-align: center;
-        user-select: none; 
-    }
-
-    rb {
-        display: table-row-group;
-        line-height: 90%;
-    }
-
-    rt {
-        display: none;
-    }
-
-    .aKanji:hover rt{
-        display: table-header-group;
-    }
-    `
-    document.head.appendChild(styleSheet)
-}
-
 function BuildHoverHtml() {
     for (key in definitions) {
         if (definitions[key] == undefined) continue
 
-        let s =
-            '<span class="wordTooltip">' + key + '<span class="wordTooltipText">'
-        s += '<span class="hoverText">' + key + ': </span><br>' + definitions[key]['Definition'] + '</span></span>'
+        let s = '<span class="JAword" onclick="WordClicked(event)">' + key + '</span> '
 
-        definitions[key]['Definition'] = s
+        definitions[key]['html'] = s
     }
 }
 
@@ -359,7 +273,7 @@ function InjectHoverableData() {
     var re = new RegExp(Object.keys(definitions).join("|"), "gi");
     str = str.replace(re, function (matched) {
         if (definitions[matched])
-            return definitions[matched]['Definition'];
+            return definitions[matched].html;
 
         return matched
     });
@@ -367,16 +281,34 @@ function InjectHoverableData() {
     document.getElementById(inputField).innerHTML = str
 }
 
+function WordClicked(event) {
+    if (event.button != 0) return
+
+    //clicking on kana vs kanji will result in a different event.target due to the injected
+    //kanjiHover data. Because of this we have to check first and get the correct value
+    let clicked = event.target
+    if (clicked.className == "kanjiTooltip")
+        clicked = clicked.parentElement
+
+    document.getElementById(outputField).innerText = definitions[clicked.innerText]['Definition']
+}
+
 function isOnline() {
     return navigator.onLine
+}
+
+function AppendPopupDiv() {
+    var div = document.createElement('div');
+    div.id = 'kanjiPopup'
+    document.body.appendChild(div);
 }
 
 function findKanji() {
     const regex = /[\u4E00-\u9FAF]/g
     const matches = body.matchAll(regex)
-    for (const match of matches) {
+
+    for (const match of matches)
         kanji.add(...match)
-    }
 }
 
 async function getKanjiData() {
@@ -389,27 +321,48 @@ async function getKanjiData() {
     )
 
     //populate dictionary with kanji as key
-    for (item of kanjiArr) {
-        kanjiDict[item["kanji"]] = item['meanings']
-    }
-
-    console.log(kanjiDict)
+    for (item of kanjiArr)
+        kanjiDict[item["kanji"]] = item
 }
 
 function buildString(kanji) {
-    let s =
-        '<a class="aKanji" onclick="kanjiClicked(event)" href="https://en.wiktionary.org/wiki/' + kanji + '#Japanese"><ruby>'
+    let html =
+        '<a class="kanjiTooltip" onclick="kanjiClicked(event)" onmouseenter="DisplayKanjiPopup(event)" onmouseleave="HideKanjiPopup()" href="https://en.wiktionary.org/wiki/' + kanji + '#Japanese">' + kanji + '</a>'
 
-    let ruby = '<rt>'
-    for (meaning of kanjiDict[kanji]) {
-        ruby += meaning + ', '
+    let s = '<span class="kanjiTooltipText">'
+    s += '<span class="hoverText">Kanji:</span> ' + kanji + '<br>'
+    s += '<span class="hoverText">Grade:</span> ' + kanjiDict[kanji].grade + '<br>'
+    s += '<span class="hoverText">Meaning:</span> '
+    for (let str of kanjiDict[kanji].meanings) {
+        s += str + ', '
     }
-    ruby = ruby.slice(0, -2) //remove last ,
-    ruby += '</rt>'
 
-    s += '<rb>' + kanji + '</rb>' + ruby + '</ruby></a>'
+    s = s.slice(0, -2)
+    s += '<br>'
 
-    return s
+    if (kanjiDict[kanji].kun_readings.length > 0) {
+        s += '<span class="hoverText">Kun\'yomi:</span> '
+        for (let str of kanjiDict[kanji].kun_readings) {
+            s += str + ', '
+        }
+        s = s.slice(0, -2)
+        s += '<br>'
+    }
+
+    if (kanjiDict[kanji].on_readings.length > 0) {
+        s += '<span class="hoverText">On\'yomi:</span> '
+        for (let str of kanjiDict[kanji].on_readings) {
+            s += str + ', '
+        }
+        s = s.slice(0, -2)
+        s += '<br>'
+    }
+
+    s += '</span>'
+
+    kanjiDict[kanji].html = s
+
+    return html
 }
 
 function kanjiClicked(e) {
@@ -428,4 +381,52 @@ function injectKanjiHTML() {
     });
 
     document.getElementById("kanjiHover").innerHTML = str
+}
+
+function DisplayKanjiPopup(event) {
+    let popup = document.getElementById("kanjiPopup")
+    popup.style.display = "inline-block"
+    popup.innerHTML = kanjiDict[event.target.innerText].html
+}
+
+function HideKanjiPopup() {
+    document.getElementById("kanjiPopup").style.display = "none"
+}
+
+function appendCSS() {
+    var styleSheet = document.createElement('style')
+    styleSheet.innerHTML = `
+    .JAword {
+      background-color: mediumpurple;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    #kanjiPopup {
+        display: none;
+        width: 30vw;
+        background-color: #1E1A1E;
+        color: #fff;
+        text-align: center;
+        padding: 5px 0;
+        border-radius: 6px;
+        z-index: 1;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 18px;
+        writing-mode: horizontal-tb;
+    }
+    
+    .kanjiTooltip {
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .hoverText {
+      color: #e95464;
+    }
+    `
+    document.head.appendChild(styleSheet)
 }
