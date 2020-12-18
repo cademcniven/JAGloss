@@ -229,17 +229,17 @@ function GetDefinitions(words) {
         for (word of words)
             definitions[word] = json[word]
 
-        appendCSS()
+        AppendCSS()
         BuildHoverHtml()
         InjectHoverableData()
 
         //Kanji hover after injecting html
         if (body) body = body.innerHTML
-        if (isOnline() && body) {
+        if (IsOnline() && body) {
             AppendPopupDiv()
-            findKanji()
-            getKanjiData().then(r => {
-                injectKanjiHTML()
+            FindKanji()
+            GetKanjiData().then(r => {
+                InjectKanjiHTML()
             })
         }
     })
@@ -290,10 +290,16 @@ function WordClicked(event) {
     if (clicked.className == "kanjiTooltip")
         clicked = clicked.parentElement
 
-    document.getElementById(outputField).innerText = definitions[clicked.innerText]['Definition']
+    let definitionString = ""
+    definitionString = definitions[clicked.innerText]['Reading']
+    definitionString += "\n" + definitions[clicked.innerText]['Definition']
+
+    document.getElementById(outputField).innerText = definitionString
 }
 
-function isOnline() {
+/* Kanji Hover stuff */
+
+function IsOnline() {
     return navigator.onLine
 }
 
@@ -303,7 +309,7 @@ function AppendPopupDiv() {
     document.body.appendChild(div);
 }
 
-function findKanji() {
+function FindKanji() {
     const regex = /[\u4E00-\u9FAF]/g
     const matches = body.matchAll(regex)
 
@@ -311,7 +317,7 @@ function findKanji() {
         kanji.add(...match)
 }
 
-async function getKanjiData() {
+async function GetKanjiData() {
     kanji = [...kanji]
     let kanjiArr = await Promise.all(
         kanji.map(async character => {
@@ -325,9 +331,9 @@ async function getKanjiData() {
         kanjiDict[item["kanji"]] = item
 }
 
-function buildString(kanji) {
+function BuildKanjiHtml(kanji) {
     let html =
-        '<a class="kanjiTooltip" onclick="kanjiClicked(event)" onmouseenter="DisplayKanjiPopup(event)" onmouseleave="HideKanjiPopup()" href="https://en.wiktionary.org/wiki/' + kanji + '#Japanese">' + kanji + '</a>'
+        '<a class="kanjiTooltip" onclick="KanjiClicked(event)" onmouseenter="DisplayKanjiPopup(event)" onmouseleave="HideKanjiPopup()" href="https://en.wiktionary.org/wiki/' + kanji + '#Japanese">' + kanji + '</a>'
 
     let s = '<span class="kanjiTooltipText">'
     s += '<span class="hoverText">Kanji:</span> ' + kanji + '<br>'
@@ -365,17 +371,17 @@ function buildString(kanji) {
     return html
 }
 
-function kanjiClicked(e) {
+function KanjiClicked(e) {
     if (e.button == 0) e.preventDefault() //disable left clicking (in order to allow for selecting)
 }
 
-function injectKanjiHTML() {
+function InjectKanjiHTML() {
     var str = document.getElementById("kanjiHover").innerHTML
 
     var re = new RegExp(Object.keys(kanjiDict).join("|"), "gi");
     str = str.replace(re, function (matched) {
         if (kanjiDict[matched])
-            return buildString(matched)
+            return BuildKanjiHtml(matched)
 
         return matched
     });
@@ -393,7 +399,7 @@ function HideKanjiPopup() {
     document.getElementById("kanjiPopup").style.display = "none"
 }
 
-function appendCSS() {
+function AppendCSS() {
     var styleSheet = document.createElement('style')
     styleSheet.innerHTML = `
     .JAword {
