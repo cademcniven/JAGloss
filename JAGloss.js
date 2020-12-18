@@ -193,6 +193,7 @@ TinySegmenter.prototype.segment = function (input) {
 }
 
 /**** the actual script ****/
+
 var definitions = {}
 var body = document.getElementById('kanjiHover')
 var kanji = new Set()
