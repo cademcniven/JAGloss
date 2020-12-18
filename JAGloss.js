@@ -9,6 +9,9 @@ const inputField = 'JAGlossInput'
 //the id of the div where the definition should go once it's found
 const outputField = 'JAGlossOutput'
 
+//the id of the div to apply kanji hover to
+const kanjiHover = 'kanjiHover'
+
 //the dictionary file located in collection.media
 const dictionary = '_JADict.json'
 
@@ -195,7 +198,7 @@ TinySegmenter.prototype.segment = function (input) {
 /**** the actual script ****/
 
 var definitions = {}
-var body = document.getElementById('kanjiHover')
+var body = document.getElementById(kanjiHover)
 var kanji = new Set()
 var kanjiDict = {}
 
@@ -377,7 +380,7 @@ function KanjiClicked(e) {
 }
 
 function InjectKanjiHTML() {
-    var str = document.getElementById("kanjiHover").innerHTML
+    var str = document.getElementById(kanjiHover).innerHTML
 
     var re = new RegExp(Object.keys(kanjiDict).join("|"), "gi");
     str = str.replace(re, function (matched) {
@@ -387,7 +390,7 @@ function InjectKanjiHTML() {
         return matched
     });
 
-    document.getElementById("kanjiHover").innerHTML = str
+    document.getElementById(kanjiHover).innerHTML = str
 }
 
 function DisplayKanjiPopup(event) {
