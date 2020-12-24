@@ -1,7 +1,7 @@
 /* modify these constants to fit your own setup */
 
 //tokens in this array won't be looked up
-const ignore = ['が', 'の', 'を', 'に', 'へ', 'と', 'で', 'から', 'より', 'さ', 'よ', 'ね', 'は', 'て', 'し', 'さん', 'ます', 'な', 'こと', 'う', '。', 'ば']
+const ignore = ['が', 'の', 'を', 'に', 'へ', 'と', 'で', 'から', 'より', 'さ', 'よ', 'ね', 'は', 'て', 'し', 'さん', 'ます', 'な', 'こと', 'う', '。', 'ば', 'た', 'も', '０', '１', '２', '３', '４', '５', '６', '７', '８', '９', 'だ', 'か']
 
 //the id of the div that contains the input to find definitions for
 const inputField = 'JAGlossInput'
@@ -234,8 +234,10 @@ function GetDefinitions(words) {
             definitions[word] = json[word]
 
         AppendCSS()
-        BuildHoverHtml()
-        InjectHoverableData()
+        if (words.length > 0) {
+            BuildHoverHtml()
+            InjectWordData()
+        }
 
         //Kanji hover after injecting html
         if (body) body = body.innerHTML
@@ -271,7 +273,7 @@ function BuildHoverHtml() {
     }
 }
 
-function InjectHoverableData() {
+function InjectWordData() {
     var str = document.getElementById(inputField).innerText
 
     var re = new RegExp(Object.keys(definitions).join("|"), "gi");
