@@ -1,7 +1,7 @@
 /* modify these constants to fit your own setup */
 
 //tokens in this array won't be looked up
-const ignore = ['が', 'の', 'を', 'に', 'へ', 'と', 'で', 'から', 'より', 'さ', 'よ', 'ね', 'は', 'て', 'し', 'さん', 'ます', 'な', 'こと', 'う', '。', 'ば', 'た', 'も', '０', '１', '２', '３', '４', '５', '６', '７', '８', '９', 'だ', 'か']
+const ignore = ['が', 'の', 'を', 'に', 'へ', 'と', 'で', 'から', 'より', 'さ', 'よ', 'ね', 'は', 'て', 'し', 'さん', 'ます', 'な', 'こと', 'う', '。', 'ば', 'た', 'も', '０', '１', '２', '３', '４', '５', '６', '７', '８', '９', 'だ', 'か', 'ず']
 
 //the id of the div that contains the input to find definitions for
 const inputField = 'JAGlossInput'
@@ -202,19 +202,35 @@ var body = document.getElementById(kanjiHover)
 var kanji = new Set()
 var kanjiDict = {}
 
-//before performing gloss, remove any ascii characters (this mostly is for getting rid of any html that might mess things up)
-var toGloss = document.getElementById(inputField).innerText
-toGloss = StripASCII(toGloss)
+var tokens = TokenizeInput()
 
-//convert any japanese in the input field into an array of dictionary-form tokens
-var segmenter = new TinySegmenter()
-var segs = segmenter.segment(toGloss)
+AppendCSS()
+if (tokens.length > 0)
+    GetDefinitions(tokens)
+else
+    KanjiHover()
 
-//remove duplicate tokens
-segs = [...new Set(segs)]
-segs = segs.filter(x => !ignore.includes(x))
+function TokenizeInput() {
+    //before performing gloss, remove any ascii characters (this mostly is for getting rid of any html that might mess things up)
+    var inputs = document.getElementsByClassName(inputField)
+    if (inputs == null) return []
 
-GetDefinitions(segs)
+    var toGloss = ""
+    for (let i = 0; i < inputs.length; ++i)
+        toGloss += inputs[i].innerText
+
+    toGloss = StripASCII(toGloss)
+
+    //convert any japanese in the input field into an array of dictionary-form tokens
+    var segmenter = new TinySegmenter()
+    var segs = segmenter.segment(toGloss)
+
+    //remove duplicates and ignored tokens
+    segs = [...new Set(segs)]
+    segs = segs.filter(x => !ignore.includes(x))
+
+    return segs
+}
 
 function StripASCII(str) {
     if (typeof str !== 'string') {
@@ -228,30 +244,20 @@ function StripASCII(str) {
 }
 
 function GetDefinitions(words) {
-    LoadJSON(dictionary, function (json) {
+    LoadDictionary(dictionary, function (json) {
         if (!json) return
         for (word of words)
             definitions[word] = json[word]
 
-        AppendCSS()
-        if (words.length > 0) {
-            BuildHoverHtml()
-            InjectWordData()
-        }
+        BuildHoverHtml()
+        InjectWordData()
 
         //Kanji hover after injecting html
-        if (body) body = body.innerHTML
-        if (IsOnline() && body) {
-            AppendPopupDiv()
-            FindKanji()
-            GetKanjiData().then(r => {
-                InjectKanjiHTML()
-            })
-        }
+        KanjiHover()
     })
 }
 
-function LoadJSON(filename, callback) {
+function LoadDictionary(filename, callback) {
     var xobj = new XMLHttpRequest()
     xobj.overrideMimeType('application/json')
     xobj.open('GET', filename, true)
@@ -274,17 +280,22 @@ function BuildHoverHtml() {
 }
 
 function InjectWordData() {
-    var str = document.getElementById(inputField).innerText
+    var inputs = document.getElementsByClassName(inputField)
+    if (inputs == null) return
 
-    var re = new RegExp(Object.keys(definitions).join("|"), "gi");
-    str = str.replace(re, function (matched) {
-        if (definitions[matched])
-            return definitions[matched].html;
+    for (let i = 0; i < inputs.length; ++i) {
+        let str = inputs[i].innerText
 
-        return matched
-    });
+        var re = new RegExp(Object.keys(definitions).join("|"), "gi");
+        str = str.replace(re, function (matched) {
+            if (definitions[matched])
+                return definitions[matched].html;
 
-    document.getElementById(inputField).innerHTML = str
+            return matched
+        });
+
+        document.getElementsByClassName(inputField)[i].innerHTML = str
+    }
 }
 
 function WordClicked(event) {
@@ -304,6 +315,17 @@ function WordClicked(event) {
 }
 
 /* Kanji Hover stuff */
+
+function KanjiHover() {
+    if (body) body = body.innerHTML
+    if (IsOnline() && body) {
+        AppendPopupDiv()
+        FindKanji()
+        GetKanjiData().then(r => {
+            InjectKanjiHTML()
+        })
+    }
+}
 
 function IsOnline() {
     return navigator.onLine
