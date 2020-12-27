@@ -15,6 +15,10 @@ const kanjiHover = 'kanjiHover'
 //the dictionary file located in collection.media
 const dictionary = '_JADict.json'
 
+/* Anki Persistence so the dictionary can be loaded on the front of the card */
+// v0.5.2 - https://github.com/SimonLammer/anki-persistence/blob/62463a7f63e79ce12f7a622a8ca0beb4c1c5d556/script.js
+if (void 0 === window.Persistence) { var _persistenceKey = "github.com/SimonLammer/anki-persistence/", _defaultKey = "_default"; if (window.Persistence_sessionStorage = function () { var e = !1; try { "object" == typeof window.sessionStorage && (e = !0, this.clear = function () { for (var e = 0; e < sessionStorage.length; e++) { var t = sessionStorage.key(e); 0 == t.indexOf(_persistenceKey) && (sessionStorage.removeItem(t), e--) } }, this.setItem = function (e, t) { void 0 == t && (t = e, e = _defaultKey), sessionStorage.setItem(_persistenceKey + e, JSON.stringify(t)) }, this.getItem = function (e) { return void 0 == e && (e = _defaultKey), JSON.parse(sessionStorage.getItem(_persistenceKey + e)) }, this.removeItem = function (e) { void 0 == e && (e = _defaultKey), sessionStorage.removeItem(_persistenceKey + e) }) } catch (e) { } this.isAvailable = function () { return e } }, window.Persistence_windowKey = function (e) { var t = window[e], i = !1; "object" == typeof t && (i = !0, this.clear = function () { t[_persistenceKey] = {} }, this.setItem = function (e, i) { void 0 == i && (i = e, e = _defaultKey), t[_persistenceKey][e] = i }, this.getItem = function (e) { return void 0 == e && (e = _defaultKey), t[_persistenceKey][e] || null }, this.removeItem = function (e) { void 0 == e && (e = _defaultKey), delete t[_persistenceKey][e] }, void 0 == t[_persistenceKey] && this.clear()), this.isAvailable = function () { return i } }, window.Persistence = new Persistence_sessionStorage, Persistence.isAvailable() || (window.Persistence = new Persistence_windowKey("py")), !Persistence.isAvailable()) { var titleStartIndex = window.location.toString().indexOf("title"), titleContentIndex = window.location.toString().indexOf("main", titleStartIndex); titleStartIndex > 0 && titleContentIndex > 0 && titleContentIndex - titleStartIndex < 10 && (window.Persistence = new Persistence_windowKey("qt")) } }
+
 /* TinySegmenter tokenizes the japanese sentence to find words we can look up.
    It's included here so the user doesn't have to add multiple scripts to their card.
 */
@@ -244,17 +248,31 @@ function StripASCII(str) {
 }
 
 function GetDefinitions(words) {
-    LoadDictionary(dictionary, function (json) {
-        if (!json) return
-        for (word of words)
-            definitions[word] = json[word]
+    if (Persistence.isAvailable()) {
+        let json = Persistence.getItem();
+        if (!json)
+            LoadDictionary(dictionary, function (json) {
+                UpdateHTML(json, words)
+            })
+        UpdateHTML(json, words)
+    }
+    else {
+        LoadDictionary(dictionary, function (json) {
+            UpdateHTML(json, words)
+        })
+    }
+}
 
-        BuildHoverHtml()
-        InjectWordData()
+function UpdateHTML(json, words) {
+    if (!json) return null
+    for (word of words)
+        definitions[word] = json[word]
 
-        //Kanji hover after injecting html
-        KanjiHover()
-    })
+    BuildHoverHtml()
+    InjectWordData()
+
+    //Kanji hover after injecting html
+    KanjiHover()
 }
 
 function LoadDictionary(filename, callback) {
