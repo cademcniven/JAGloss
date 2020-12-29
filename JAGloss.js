@@ -1,7 +1,7 @@
 /* modify these constants to fit your own setup */
 
 //tokens in this array won't be looked up
-const ignore = ['が', 'の', 'を', 'に', 'へ', 'と', 'で', 'から', 'より', 'さ', 'よ', 'ね', 'は', 'て', 'し', 'さん', 'ます', 'な', 'こと', 'う', '。', 'ば', 'た', 'も', '０', '１', '２', '３', '４', '５', '６', '７', '８', '９', 'だ', 'か', 'ず']
+const ignore = ['が', 'の', 'を', 'に', 'へ', 'と', 'で', 'から', 'より', 'さ', 'よ', 'ね', 'は', 'て', 'し', 'さん', 'ます', 'な', 'こと', 'う', '。', 'ば', 'た', 'も', '０', '１', '２', '３', '４', '５', '６', '７', '８', '９', 'だ', 'か', 'ず', 'い']
 
 //the id of the div that contains the input to find definitions for
 const inputField = 'JAGlossInput'
@@ -383,7 +383,8 @@ function BuildKanjiHtml(kanji) {
 
     let s = '<span class="kanjiTooltipText">'
     s += '<span class="hoverText">Kanji:</span> ' + kanji + '<br>'
-    s += '<span class="hoverText">Grade:</span> ' + kanjiDict[kanji].grade + '<br>'
+    if (kanjiDict[kanji].grade)
+        s += '<span class="hoverText">Grade:</span> ' + kanjiDict[kanji].grade + '<br>'
     s += '<span class="hoverText">Meaning:</span> '
     for (let str of kanjiDict[kanji].meanings) {
         s += str + ', '
