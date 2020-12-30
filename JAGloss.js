@@ -252,6 +252,7 @@ function GetDefinitions(words) {
         let json = Persistence.getItem();
         if (!json)
             LoadDictionary(dictionary, function (json) {
+                Persistence.setItem(json)
                 UpdateHTML(json, words)
             })
         UpdateHTML(json, words)
@@ -326,10 +327,12 @@ function WordClicked(event) {
         clicked = clicked.parentElement
 
     let definitionString = ""
-    definitionString = definitions[clicked.innerText]['Reading']
-    definitionString += "\n" + definitions[clicked.innerText]['Definition']
+    definitionString = clicked.innerText + " ( " + definitions[clicked.innerText]['Reading'] + " )"
+    definitionString += '<br><a href="https://en.wiktionary.org/wiki/' + clicked.innerText + '#Japanese">Wikitionary</a>'
+    definitionString += ' | <a href="https://dictionary.goo.ne.jp/srch/all/' + clicked.innerText + '/m0u/">goo</a>'
+    definitionString += "<br>" + definitions[clicked.innerText]['Definition']
 
-    document.getElementById(outputField).innerText = definitionString
+    document.getElementById(outputField).innerHTML = definitionString
 }
 
 /* Kanji Hover stuff */
