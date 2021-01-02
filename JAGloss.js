@@ -209,7 +209,9 @@ var kanjiDict = {}
 var tokens = TokenizeInput()
 
 AppendCSS()
-if (tokens.length > 0)
+
+//JAGloss does't work on mobile, but kanjiHover does
+if (tokens.length > 0 && !document.documentElement.classList.contains("android"))
     GetDefinitions(tokens)
 else
     KanjiHover()
@@ -292,7 +294,7 @@ function BuildHoverHtml() {
     for (key in definitions) {
         if (definitions[key] == undefined) continue
 
-        let s = '<span class="JAword" onclick="WordClicked(event)">' + key + '</span> '
+        let s = '<span class="JAword" onclick="WordClicked(event)">' + key + '</span>'
 
         definitions[key]['html'] = s
     }
@@ -326,8 +328,9 @@ function WordClicked(event) {
     if (clicked.className == "kanjiTooltip")
         clicked = clicked.parentElement
 
-    let definitionString = ""
-    definitionString = clicked.innerText + " ( " + definitions[clicked.innerText]['Reading'] + " )"
+    let definitionString = clicked.innerText
+    if (definitions[clicked.innerText]['Reading'])
+        definitionString += " ( " + definitions[clicked.innerText]['Reading'] + " )"
     definitionString += '<br><a href="https://en.wiktionary.org/wiki/' + clicked.innerText + '#Japanese">Wikitionary</a>'
     definitionString += ' | <a href="https://dictionary.goo.ne.jp/srch/all/' + clicked.innerText + '/m0u/">goo</a>'
     definitionString += "<br>" + definitions[clicked.innerText]['Definition']
@@ -483,6 +486,10 @@ function AppendCSS() {
     .hoverText {
       color: #e95464;
     }
+
+    @media only screen and (max-width: 768px) {
+        #kanjiPopup {width: 90vw;}
+    } 
     `
     document.head.appendChild(styleSheet)
 }
