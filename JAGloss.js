@@ -459,6 +459,7 @@ function AppendCSS() {
       background-color: mediumpurple;
       color: #fff;
       cursor: pointer;
+      margin: 0px 5px;
     }
 
     #kanjiPopup {
